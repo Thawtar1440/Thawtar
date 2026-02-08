@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login & Register</title>
+<style>
+body { font-family:"Noto Sans Myanmar",Arial,sans-serif; background:linear-gradient(135deg,#89f7fe,#66a6ff); display:flex; justify-content:center; align-items:center; height:100vh; margin:0; flex-direction:column; }
+.header { font-size:28px; color:#fff; margin-bottom:20px; font-weight:bold; text-shadow:2px 2px 4px #000; text-align:center;}
+.container { background-color:#fff; width:380px; border-radius:15px; box-shadow:0 15px 25px rgba(0,0,0,0.2); overflow:hidden; transition:all 0.3s ease;}
+.tabs { display:flex;}
+.tabs button { flex:1; padding:15px 0; border:none; cursor:pointer; font-size:16px; background-color:#f0f0f0; transition:all 0.3s ease;}
+.tabs button.active { background-color:#4CAF50; color:white; font-weight:bold;}
+.form-container { padding:30px; transition:all 0.5s ease;}
+.form-container input[type="text"], .form-container input[type="email"], .form-container input[type="password"] { width:100%; padding:12px; margin:8px 0 15px 0; border:2px solid #ccc; border-radius:8px; transition:all 0.3s ease;}
+.form-container input:focus { border-color:#4CAF50; box-shadow:0 0 5px #4CAF50; outline:none;}
+.form-container button { width:100%; padding:12px; background-color:#4CAF50; border:none; color:white; border-radius:8px; font-size:16px; cursor:pointer; transition:all 0.3s ease;}
+.form-container button:hover { background-color:#45a049; transform:scale(1.03);}
+.form-container .message { text-align:center; color:red; margin-bottom:10px; font-size:14px; height:18px;}
+.remember-me { display:flex; align-items:center; margin-bottom:15px; font-size:14px;}
+.remember-me input { margin-right:8px;}
+.hidden { display:none; }
+</style>
+</head>
+<body>
+
+<div class="header">Welcome All Student</div>
+
+<div class="container">
+    <div class="tabs">
+        <button id="loginTab" class="active">လော့ဂ်အင်</button>
+        <button id="registerTab">အကောင့်ဖန်တီးရန်</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm" class="form-container">
+        <div class="message" id="loginMsg"></div>
+        <form id="loginFormElement">
+            <input type="text" id="loginUsername" placeholder="အသုံးပြုသူအမည် / အီးမေးလ်" required>
+            <input type="password" id="loginPassword" placeholder="စကားဝှက်" required>
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe">
+                <label for="rememberMe">အကောင့်ကို မှတ်ထားမည်</label>
+            </div>
+            <button type="submit">ဝင်မည်</button>
+        </form>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" class="form-container hidden">
+        <div class="message" id="regMsg"></div>
+        <form id="registerFormElement">
+            <input type="text" id="regUsername" placeholder="အသုံးပြုသူအမည်" required>
+            <input type="email" id="regEmail" placeholder="အီးမေးလ်" required>
+            <input type="password" id="regPassword" placeholder="စကားဝှက်" required>
+            <input type="password" id="regConfirmPassword" placeholder="စကားဝှက်အတည်ပြုရန်" required>
+            <button type="submit">အကောင့်ဖန်တီးမည်</button>
+        </form>
+    </div>
+</div>
+
+<script>
+const loginTab=document.getElementById("loginTab");
+const registerTab=document.getElementById("registerTab");
+const loginForm=document.getElementById("loginForm");
+const registerForm=document.getElementById("registerForm");
+const loginMsg=document.getElementById("loginMsg");
+const regMsg=document.getElementById("regMsg");
+
+// Users list
+let users=JSON.parse(localStorage.getItem("users"))||[];
+
+// Auto-login
+window.addEventListener("load", ()=>{
+    const persistentUser=localStorage.getItem("loggedInUser");
+    const sessionUser=sessionStorage.getItem("loggedInUser");
+    if(persistentUser||sessionUser){ window.location.href="main.html"; }
+});
+
+// Tabs
+loginTab.addEventListener("click",()=>{ loginTab.classList.add("active"); registerTab.classList.remove("active"); loginForm.classList.remove("hidden"); registerForm.classList.add("hidden"); loginMsg.textContent=""; });
+registerTab.addEventListener("click",()=>{ registerTab.classList.add("active"); loginTab.classList.remove("active"); registerForm.classList.remove("hidden"); loginForm.classList.add("hidden"); regMsg.textContent=""; });
+
+// Register
+document.getElementById("registerFormElement").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    const username=document.getElementById("regUsername").value.trim();
+    const email=document.getElementById("regEmail").value.trim();
+    const password=document.getElementById("regPassword").value;
+    const confirmPassword=document.getElementById("regConfirmPassword").value;
+    if(password!==confirmPassword){ regMsg.textContent="စကားဝှက်နှစ်ခုမတူပါ!"; return; }
+    if(users.find(u=>u.username===username||u.email===email)){ regMsg.textContent="အသုံးပြုသူ/အီးမေးလ် ရှိပြီးသားဖြစ်နေပါသည်!"; return; }
+    users.push({username,email,password});
+    localStorage.setItem("users",JSON.stringify(users));
+    regMsg.style.color="green"; regMsg.textContent="အကောင့်ဖန်တီးပြီးပါပြီ!";
+    setTimeout(()=>{
+        loginTab.click();
+        document.getElementById("regUsername").value="";
+        document.getElementById("regEmail").value="";
+        document.getElementById("regPassword").value="";
+        document.getElementById("regConfirmPassword").value="";
+        regMsg.textContent="";
+    },1500);
+});
+
+// Login
+document.getElementById("loginFormElement").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    const username=document.getElementById("loginUsername").value.trim();
+    const password=document.getElementById("loginPassword").value;
+    const rememberMe=document.getElementById("rememberMe").checked;
+    const user=users.find(u=>(u.username===username||u.email===username)&& u.password===password);
+    if(user){
+        if(rememberMe){ localStorage.setItem("loggedInUser",user.username); }
+        else { sessionStorage.setItem("loggedInUser",user.username); }
+        window.location.href="main.html";
+    } else { loginMsg.textContent="အသုံးပြုသူအမည် / စကားဝှက် မှားနေပါသည်!"; }
+});
+</script>
+
+</body>
+</html>

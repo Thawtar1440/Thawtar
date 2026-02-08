@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Developer Quiz</title>
+<style>
+body { font-family:"Noto Sans Myanmar",Arial,sans-serif; margin:0; padding:20px; background:#f0f8ff; }
+h1 { text-align:center; color:#333; margin-bottom:20px; }
+.question { max-width:600px; margin:auto; font-size:20px; margin-bottom:30px; text-align:center; }
+.options { display:flex; justify-content:space-around; max-width:600px; margin:auto; gap:15px; flex-wrap:wrap; }
+.option { cursor:pointer; font-size:18px; padding:5px 10px; transition:0.3s; }
+.option:hover { color:#ff9800; text-decoration:underline; }
+.selected { color:#2196F3; font-weight:bold; text-decoration:underline; }
+.nav-btn { padding:10px 20px; background:#2196F3; color:white; border:none; border-radius:5px; cursor:pointer; margin:15px; transition:0.3s; }
+.nav-btn:hover { background:#0b7dda; transform:scale(1.05);}
+.nav-btn:disabled { background:gray; cursor:not-allowed;}
+.button-container { display:flex; justify-content:space-between; max-width:600px; margin:auto; margin-top:30px; }
+.finish-container { text-align:center; margin-top:30px; }
+.locked { cursor:not-allowed; color:gray; text-decoration:none !important; }
+</style>
+</head>
+<body>
+
+<h1>Developer Quiz</h1>
+
+<div class="question" id="questionText"></div>
+
+<div class="options" id="optionsContainer">
+    <span class="option" data-index="0"><b>A.</b> <span class="option-text"></span></span>
+    <span class="option" data-index="1"><b>B.</b> <span class="option-text"></span></span>
+    <span class="option" data-index="2"><b>C.</b> <span class="option-text"></span></span>
+    <span class="option" data-index="3"><b>D.</b> <span class="option-text"></span></span>
+</div>
+
+<div class="button-container">
+    <button class="nav-btn" onclick="prevQuestion()">Previous</button>
+    <button class="nav-btn" onclick="nextQuestion()">Next</button>
+</div>
+
+<div class="finish-container">
+    <button class="nav-btn" id="finishBtn" onclick="finishQuiz()" disabled>Finish Quiz</button>
+    <div id="scoreDisplay" style="margin-top:15px;font-size:20px;font-weight:bold;"></div>
+</div>
+
+<script>
+// Login check
+const loggedInUser = localStorage.getItem("loggedInUser") || sessionStorage.getItem("loggedInUser");
+if(!loggedInUser){ window.location.href="index.html"; }
+
+// Developer questions (Unlimited, just add more)
+const questions = [
+    {text:"Which language is primarily used for web development?", options:["Python","JavaScript","C++","Java"], answer:"JavaScript"},
+    {text:"Which HTML tag is used for a paragraph?", options:["<p>","<div>","<h1>","<span>"], answer:"<p>"},
+    {text:"What does CSS stand for?", options:["Computer Style Sheet","Cascading Style Sheets","Creative Style Script","Colorful Style Sheet"], answer:"Cascading Style Sheets"},
+    {text:"Which keyword is used to define a function in JavaScript?", options:["func","function","def","method"], answer:"function"},
+    {text:"Git is primarily used for --------.", options:["Database","Version Control","Design","Server"], answer:"Version Control"}
+];
+
+let currentIndex=0;
+const quizFinishedKey = `quizFinished_${loggedInUser}_Developer`;
+let quizFinished = localStorage.getItem(quizFinishedKey) === "true";
+
+// Elements
+const questionText=document.getElementById("questionText");
+const optionElements=document.querySelectorAll(".option");
+const finishBtn = document.getElementById("finishBtn");
+
+// Check if all questions answered → enable finish button
+function checkAllAnswered(){
+    const allAnswers = JSON.parse(localStorage.getItem("userAnswers")) || [];
+    const answered = questions.every((q,i)=>allAnswers.find(a=>a.username===loggedInUser && a.subject==="Developer" && a.questionIndex===i));
+    finishBtn.disabled = !answered || quizFinished;
+}
+
+// Load question
+function loadQuestion(){
+    const q=questions[currentIndex];
+    questionText.textContent = `Question ${currentIndex+1}: ${q.text}`;
+    optionElements.forEach((el,i)=>{
+        el.querySelector(".option-text").textContent = q.options[i];
+        el.classList.remove("selected");
+        if(quizFinished) el.classList.add("locked");
+    });
+
+    const allAnswers = JSON.parse(localStorage.getItem("userAnswers")) || [];
+    const userAnswer = allAnswers.find(a=>a.username===loggedInUser && a.subject==="Developer" && a.questionIndex===currentIndex);
+    if(userAnswer) optionElements[userAnswer.optionIndex].classList.add("selected");
+
+    checkAllAnswered();
+}
+
+// Record answer + auto enable finish if all answered
+optionElements.forEach((el,i)=>{
+    el.addEventListener("click",()=>{
+        if(quizFinished) return;
+        let allAnswers = JSON.parse(localStorage.getItem("userAnswers")) || [];
+        const existingIndex = allAnswers.findIndex(a=>a.username===loggedInUser && a.subject==="Developer" && a.questionIndex===currentIndex);
+        if(existingIndex>=0){
+            allAnswers[existingIndex].optionIndex = i;
+            allAnswers[existingIndex].answer = questions[currentIndex].options[i];
+        } else {
+            allAnswers.push({
+                username: loggedInUser,
+                subject: "Developer",
+                questionIndex: currentIndex,
+                optionIndex: i,
+                answer: questions[currentIndex].options[i]
+            });
+        }
+        localStorage.setItem("userAnswers",JSON.stringify(allAnswers));
+
+        optionElements.forEach(el=>el.classList.remove("selected"));
+        optionElements[i].classList.add("selected");
+
+        checkAllAnswered(); // <-- Finish button enable check
+    });
+});
+
+// Navigation
+function nextQuestion(){ if(currentIndex<questions.length-1){ currentIndex++; loadQuestion(); } }
+function prevQuestion(){ if(currentIndex>0){ currentIndex--; loadQuestion(); } }
+
+// Finish Quiz → score + wrong questions + lock
+function finishQuiz(){
+    if(quizFinished){ alert("Quiz already finished."); return; }
+
+    const allAnswers = JSON.parse(localStorage.getItem("userAnswers")) || [];
+    let score = 0;
+    let wrongQuestions = [];
+    questions.forEach((q,i)=>{
+        const userAnswer = allAnswers.find(a=>a.username===loggedInUser && a.subject==="Developer" && a.questionIndex===i);
+        if(userAnswer && userAnswer.answer === q.answer){ score++; } 
+        else { wrongQuestions.push(i+1); }
+    });
+
+    document.getElementById("scoreDisplay").innerHTML = 
+        `Your Score: ${score} / ${questions.length}` + 
+        (wrongQuestions.length>0 ? `<br>Incorrect Questions: ${wrongQuestions.join(", ")}` : "");
+
+    quizFinished = true;
+    localStorage.setItem(quizFinishedKey,"true");
+    optionElements.forEach(el=>el.classList.add("locked"));
+    finishBtn.disabled = true;
+}
+
+loadQuestion();
+</script>
+
+</body>
+</html>
